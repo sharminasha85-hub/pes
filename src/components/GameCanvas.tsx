@@ -1,10 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MatchEngine, SerializedState } from '../engine/MatchEngine';
 import { PitchRenderer } from '../engine/PitchRenderer';
-import { createEmptyInput, InputManager } from '../engine/InputManager';
+import {
+  createEmptyInput,
+  createEmptyTouchInput,
+  InputManager,
+  TouchInputState,
+} from '../engine/InputManager';
 import { MultiplayerClient } from '../network/MultiplayerClient';
 import { HudSnapshot, InputState, MatchConfig } from '../types/game';
 import { MatchHud } from './MatchHud';
+import { TouchControls } from './TouchControls';
 import { soundEngine } from '../audio/SoundEngine';
 
 interface GameCanvasProps {
@@ -15,6 +21,16 @@ interface GameCanvasProps {
   muted: boolean;
   onToggleMute: () => void;
   onExitMenu: () => void;
+}
+
+function detectTouchDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    'ontouchstart' in window ||
+    navigator.maxTouchPoints > 0 ||
+    window.matchMedia('(pointer: coarse)').matches ||
+    window.innerWidth <= 900
+  );
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -30,9 +46,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const engineRef = useRef<MatchEngine | null>(null);
   const rendererRef = useRef<PitchRenderer | null>(null);
   const inputRef = useRef<InputManager | null>(null);
+  const touchInputRef = useRef<TouchInputState>(createEmptyTouchInput());
 
   const [rematchKey, setRematchKey] = useState(0);
   const [hud, setHud] = useState<HudSnapshot | null>(null);
+  const [touchEnabled, setTouchEnabled] = useState<boolean>(() => detectTouchDevice());
+  const [isAttacking, setIsAttacking] = useState<boolean>(true);
   const [radarState, setRadarState] = useState<{
     players: Array<{ id: string; team: 'home' | 'away'; x: number; y: number }>;
     ball: { x: number; y: number };
@@ -74,10 +93,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       const isOnlineHost = config.mode === 'online' && config.onlineRole === 'host';
       const isLocalPvp = config.mode === 'local_pvp';
 
-      const p1Input = input.pollP1(isLocalPvp);
+      const p1Input = input.pollP1(isLocalPvp, touchInputRef.current);
 
       if (isOnlineClient) {
-        // Send our P2 input to host & apply latest host snapshot
         netAccum += dt;
         if (multiplayer && netAccum >= 0.025) {
           netAccum = 0;
@@ -93,7 +111,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           p2Input = input.pollP2();
         } else if (isOnlineHost) {
           p2Input = { ...remoteInputRef.current };
-          // Reset one-shot flags on remote input after consuming
           remoteInputRef.current.passJustPressed = false;
           remoteInputRef.current.passJustReleased = false;
           remoteInputRef.current.shootJustPressed = false;
@@ -137,11 +154,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         }
       }
 
-      // Update React HUD & Radar at ~20Hz for ultra-smooth 60fps canvas performance
+      // Update React HUD & Radar at ~20Hz
       hudAccum += dt;
       if (hudAccum >= 0.05) {
         hudAccum = 0;
         setHud(engine.getHudSnapshot());
+        const myTeam = isOnlineClient ? 'away' : 'home';
+        const owner = engine.getPlayerById(engine.ball.ownerId);
+        setIsAttacking(!owner || owner.team === myTeam);
         setRadarState({
           players: engine.players.map((p) => ({
             id: p.id,
@@ -165,6 +185,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       window.removeEventListener('keydown', handleEsc);
       input.detach();
       remoteInputRef.current = createEmptyInput();
+      touchInputRef.current = createEmptyTouchInput();
     };
   }, [config, rematchKey, multiplayer, remoteInputRef, remoteStateRef]);
 
@@ -193,8 +214,25 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     setRematchKey((k) => k + 1);
   };
 
+  const showTouchPad =
+    touchEnabled &&
+    hud !== null &&
+    !hud.isPaused &&
+    hud.phase !== 'halftime' &&
+    hud.phase !== 'fulltime' &&
+    hud.phase !== 'goal_replay';
+
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#050a18' }}>
+    <div
+      style={{
+        position: 'relative',
+        width: '100vw',
+        height: '100dvh',
+        overflow: 'hidden',
+        background: '#050a18',
+        touchAction: 'none',
+      }}
+    >
       <canvas
         ref={canvasRef}
         onClick={() => {
@@ -203,8 +241,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             engineRef.current.skipReplay();
           }
         }}
-        style={{ width: '100%', height: '100%', display: 'block' }}
+        style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
       />
+
+      {showTouchPad && (
+        <TouchControls
+          touchRef={touchInputRef}
+          isAttacking={isAttacking}
+          isPenalty={hud.phase === 'penalty_shootout'}
+        />
+      )}
 
       {hud && engineRef.current && (
         <MatchHud
@@ -217,6 +263,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           homeControlledId={radarState.homeCtrl}
           awayControlledId={radarState.awayCtrl}
           muted={muted}
+          touchEnabled={touchEnabled}
+          onToggleTouch={() => setTouchEnabled((v) => !v)}
           onToggleMute={onToggleMute}
           onTogglePause={handleTogglePause}
           onSkipReplay={handleSkipReplay}
@@ -229,4 +277,3 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     </div>
   );
 };
-

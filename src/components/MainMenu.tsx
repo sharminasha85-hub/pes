@@ -47,7 +47,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         }}
       >
         {/* Top bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <div className="pes-badge-gold">
             <Trophy size={13} />
             E-FOOTBALL • PRO EVOLUTION ENGINE
@@ -60,21 +60,21 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         </div>
 
         {/* Hero title */}
-        <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <h1 className="pes-brand-title" style={{ fontSize: 'clamp(42px, 6.2vw, 76px)', lineHeight: 1.05 }}>
+        <div style={{ textAlign: 'center', marginTop: 4 }}>
+          <h1 className="pes-brand-title" style={{ fontSize: 'clamp(36px, 8vw, 76px)', lineHeight: 1.05 }}>
             PES 2026
           </h1>
           <p
             style={{
-              marginTop: 10,
+              marginTop: 8,
               fontFamily: 'var(--font-pes)',
-              fontSize: 17,
-              letterSpacing: '0.18em',
+              fontSize: 'clamp(12px, 2.8vw, 17px)',
+              letterSpacing: '0.14em',
               color: '#94a3b8',
               textTransform: 'uppercase',
             }}
           >
-            Authentic 11v11 Animations • Power Gauge Shooting • Instant Goal Replays
+            11v11 Animations • Mobile Touch Pad &amp; Gamepad • Instant Replays
           </p>
         </div>
 
@@ -82,8 +82,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-            gap: 16,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 210px), 1fr))',
+            gap: 14,
           }}
         >
           <button

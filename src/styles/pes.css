@@ -10,12 +10,17 @@
   --font-display: 'Orbitron', 'Chakra Petch', sans-serif;
   --font-pes: 'Chakra Petch', 'Inter', sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
@@ -23,11 +28,15 @@ body,
 #root {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
   background: var(--pes-bg);
   color: #f8fafc;
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* === STADIUM MENU BACKGROUND === */
@@ -35,7 +44,11 @@ body,
   position: relative;
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
   background:
     radial-gradient(ellipse 85% 55% at 50% -10%, rgba(14, 165, 233, 0.32), transparent 65%),
     radial-gradient(ellipse 65% 45% at 85% 95%, rgba(250, 204, 21, 0.14), transparent 65%),
@@ -109,6 +122,10 @@ body,
   transform: translateY(-4px);
   border-color: var(--card-accent, #00d4ff);
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45), 0 0 22px rgba(0, 212, 255, 0.18);
+}
+
+.pes-mode-card:active {
+  transform: scale(0.98);
 }
 
 /* === BUTTONS === */
@@ -265,12 +282,13 @@ body,
   border-bottom: 3px solid #00d4ff;
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.72), 0 0 40px rgba(0, 212, 255, 0.32);
   text-align: center;
+  max-width: 92vw;
 }
 
 .pes-goal-word {
   font-family: var(--font-display);
   font-weight: 900;
-  font-size: clamp(36px, 5vw, 60px);
+  font-size: clamp(30px, 5vw, 60px);
   letter-spacing: 0.14em;
   background: linear-gradient(180deg, #ffffff 0%, #fef08a 52%, #f59e0b 100%);
   -webkit-background-clip: text;
@@ -306,3 +324,261 @@ body,
   font-size: 14px;
 }
 
+/* === HUD LAYOUT HELPERS === */
+.pes-hud-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: calc(12px + var(--safe-top)) calc(16px + var(--safe-right)) calc(12px + var(--safe-bottom)) calc(16px + var(--safe-left));
+  z-index: 10;
+}
+
+.pes-commentary-pill {
+  flex: 1;
+  max-width: 440px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(6, 12, 28, 0.76);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  text-align: center;
+  font-size: 12.5px;
+  font-family: var(--font-pes);
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  backdrop-filter: blur(6px);
+}
+
+.pes-radar-box {
+  width: 210px;
+  height: 112px;
+  border-radius: 8px;
+  background: rgba(7, 25, 16, 0.78);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.pes-modal-card {
+  width: min(560px, 94vw);
+  max-height: 90dvh;
+  overflow-y: auto;
+  padding: 24px 26px;
+  border-radius: 16px;
+  background: linear-gradient(155deg, #0b1636, #060c1f);
+  border: 1px solid rgba(56, 189, 248, 0.38);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.75);
+}
+
+/* === MOBILE VIRTUAL TOUCH CONTROLS === */
+.pes-touch-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+  touch-action: none;
+}
+
+.pes-joystick-zone {
+  position: absolute;
+  left: calc(16px + var(--safe-left));
+  bottom: calc(16px + var(--safe-bottom));
+  width: 154px;
+  height: 154px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.pes-joystick-base {
+  position: relative;
+  width: 124px;
+  height: 124px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.14) 0%, rgba(6, 12, 28, 0.52) 72%);
+  border: 2px solid rgba(56, 189, 248, 0.42);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4), inset 0 0 18px rgba(0, 212, 255, 0.14);
+}
+
+.pes-joystick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 50px;
+  height: 50px;
+  margin-left: -25px;
+  margin-top: -25px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #e0f2fe 0%, #38bdf8 55%, #0369a1 100%);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.5);
+  transition: transform 0.04s linear;
+}
+
+.pes-action-pad {
+  position: absolute;
+  right: calc(14px + var(--safe-right));
+  bottom: calc(14px + var(--safe-bottom));
+  width: 204px;
+  height: 184px;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.pes-touch-btn {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-pes);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  touch-action: none;
+  cursor: pointer;
+  transition: transform 0.06s ease, filter 0.06s ease;
+}
+
+.pes-touch-btn.active {
+  transform: scale(0.9);
+  filter: brightness(1.3);
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.55);
+}
+
+/* === RESPONSIVE BREAKPOINTS (MOBILE PORTRAIT + LANDSCAPE) === */
+@media (max-width: 900px) {
+  .pes-commentary-pill {
+    display: none;
+  }
+
+  .pes-scoreboard {
+    transform-origin: top left;
+  }
+
+  .pes-score-team {
+    padding: 5px 8px;
+    font-size: 13px;
+    gap: 5px;
+  }
+
+  .pes-score-digit {
+    min-width: 24px;
+    padding: 5px 6px;
+    font-size: 15px;
+  }
+
+  .pes-clock-box {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .pes-nameplate {
+    width: 178px;
+    padding: 6px 9px;
+  }
+
+  .pes-radar-box {
+    width: 132px;
+    height: 70px;
+  }
+
+  .pes-goal-banner {
+    padding: 12px 22px;
+  }
+
+  .pes-modal-card {
+    padding: 18px 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .pes-hud-root {
+    padding: calc(8px + var(--safe-top)) calc(10px + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(10px + var(--safe-left));
+  }
+
+  .pes-nameplate {
+    width: 152px;
+    padding: 5px 8px;
+  }
+
+  .pes-nameplate-away {
+    display: none;
+  }
+
+  .pes-joystick-zone {
+    width: 134px;
+    height: 134px;
+    left: calc(10px + var(--safe-left));
+    bottom: calc(14px + var(--safe-bottom));
+  }
+
+  .pes-joystick-base {
+    width: 108px;
+    height: 108px;
+  }
+
+  .pes-joystick-knob {
+    width: 44px;
+    height: 44px;
+    margin-left: -22px;
+    margin-top: -22px;
+  }
+
+  .pes-action-pad {
+    width: 184px;
+    height: 170px;
+    right: calc(10px + var(--safe-right));
+    bottom: calc(12px + var(--safe-bottom));
+  }
+
+  .pes-mode-card {
+    padding: 15px 16px;
+  }
+}
+
+/* Short landscape phones (e.g., iPhone / Android rotated sideways) */
+@media (max-height: 500px) and (orientation: landscape) {
+  .pes-hud-root {
+    padding: 6px calc(12px + var(--safe-right)) 6px calc(12px + var(--safe-left));
+  }
+
+  .pes-radar-box {
+    width: 118px;
+    height: 62px;
+  }
+
+  .pes-nameplate {
+    width: 162px;
+    padding: 5px 8px;
+  }
+
+  .pes-joystick-zone {
+    width: 122px;
+    height: 122px;
+    bottom: 8px;
+  }
+
+  .pes-joystick-base {
+    width: 100px;
+    height: 100px;
+  }
+
+  .pes-action-pad {
+    width: 178px;
+    height: 156px;
+    bottom: 6px;
+  }
+}

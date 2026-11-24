@@ -31,3 +31,4 @@ npm run server
 | Lofted Cross / Slide Tackle (O) | `L` or `Q` |
 | Skill Move Feint | `F` or `U` |
 | Pause | `Esc` |
+

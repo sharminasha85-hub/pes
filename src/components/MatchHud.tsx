@@ -9,11 +9,11 @@ import {
   HelpCircle,
   FastForward,
   Crosshair,
+  Smartphone,
 } from 'lucide-react';
 import {
   HudSnapshot,
   MatchConfig,
-  PlayerEntity,
   TeamData,
 } from '../types/game';
 import { PITCH_HEIGHT, PITCH_WIDTH } from '../engine/constants';
@@ -29,6 +29,8 @@ interface MatchHudProps {
   homeControlledId: string | null;
   awayControlledId: string | null;
   muted: boolean;
+  touchEnabled: boolean;
+  onToggleTouch: () => void;
   onToggleMute: () => void;
   onTogglePause: () => void;
   onSkipReplay: () => void;
@@ -65,6 +67,8 @@ export const MatchHud: React.FC<MatchHudProps> = ({
   homeControlledId,
   awayControlledId,
   muted,
+  touchEnabled,
+  onToggleTouch,
   onToggleMute,
   onTogglePause,
   onSkipReplay,
@@ -101,7 +105,7 @@ export const MatchHud: React.FC<MatchHudProps> = ({
     const alignRight = side === 'away';
     return (
       <div
-        className="pes-nameplate"
+        className={`pes-nameplate ${side === 'away' ? 'pes-nameplate-away' : ''}`}
         style={{
           borderColor: side === 'home' ? 'rgba(56, 189, 248, 0.4)' : 'rgba(251, 113, 133, 0.4)',
         }}
@@ -112,34 +116,46 @@ export const MatchHud: React.FC<MatchHudProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             flexDirection: alignRight ? 'row-reverse' : 'row',
-            marginBottom: 5,
+            marginBottom: 4,
+            gap: 6,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexDirection: alignRight ? 'row-reverse' : 'row' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexDirection: alignRight ? 'row-reverse' : 'row', minWidth: 0 }}>
             <span
               style={{
-                padding: '1px 6px',
+                padding: '1px 5px',
                 borderRadius: 4,
                 background: team.crestBg,
                 color: team.id === 'rma' ? '#0f172a' : '#fff',
                 fontFamily: 'var(--font-display)',
                 fontWeight: 800,
-                fontSize: 12,
+                fontSize: 11,
+                flexShrink: 0,
               }}
             >
               {player.number}
             </span>
-            <span style={{ fontFamily: 'var(--font-pes)', fontWeight: 700, fontSize: 14, letterSpacing: '0.04em' }}>
+            <span
+              style={{
+                fontFamily: 'var(--font-pes)',
+                fontWeight: 700,
+                fontSize: 13,
+                letterSpacing: '0.03em',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {player.name}
             </span>
           </div>
-          <span style={{ fontSize: 11, fontFamily: 'var(--font-pes)', color: '#94a3b8' }}>
-            {player.role} • {player.ovr}
+          <span style={{ fontSize: 10, fontFamily: 'var(--font-pes)', color: '#94a3b8', flexShrink: 0 }}>
+            {player.role}
           </span>
         </div>
 
         {/* Stamina bar */}
-        <div className="pes-bar-track" style={{ height: 5, marginBottom: 5 }}>
+        <div className="pes-bar-track" style={{ height: 4, marginBottom: 4 }}>
           <div
             style={{
               width: `${Math.round(player.stamina)}%`,
@@ -154,26 +170,26 @@ export const MatchHud: React.FC<MatchHudProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span
             style={{
-              fontSize: 10,
+              fontSize: 9.5,
               fontFamily: 'var(--font-pes)',
               fontWeight: 700,
               color: charge.action !== 'none' ? '#fde047' : '#64748b',
-              minWidth: 50,
+              minWidth: 42,
             }}
           >
             {charge.action === 'shoot'
               ? charge.finesse
-                ? 'FINESSE'
+                ? 'CURL'
                 : 'SHOOT'
               : charge.action === 'pass'
                 ? 'PASS'
                 : charge.action === 'through'
-                  ? 'THROUGH'
+                  ? 'THRU'
                   : charge.action === 'lob'
                     ? 'CROSS'
                     : 'POWER'}
           </span>
-          <div className="pes-bar-track" style={{ height: 8 }}>
+          <div className="pes-bar-track" style={{ height: 7 }}>
             <div
               className="pes-power-fill"
               style={{ width: `${Math.round(charge.power * 100)}%` }}
@@ -185,96 +201,83 @@ export const MatchHud: React.FC<MatchHudProps> = ({
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        pointerEvents: 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '14px 18px',
-        zIndex: 10,
-      }}
-    >
+    <div className="pes-hud-root">
       {/* === TOP ROW: BROADCAST SCOREBOARD + COMMENTARY + CONTROLS === */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        {/* PES Broadcast Scoreboard */}
-        <div className="pes-scoreboard" style={{ pointerEvents: 'auto' }}>
-          <div
-            className="pes-score-team"
-            style={{ borderBottom: `3px solid ${homeTeam.kit.primary}` }}
-          >
-            <TeamCrest team={homeTeam} size={22} />
-            <span>{homeTeam.shortName}</span>
-          </div>
-          <div className="pes-score-digit">{hud.homeScore}</div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '0 4px',
-              color: '#64748b',
-              fontWeight: 800,
-            }}
-          >
-            -
-          </div>
-          <div className="pes-score-digit">{hud.awayScore}</div>
-          <div
-            className="pes-score-team"
-            style={{ borderBottom: `3px solid ${awayTeam.kit.primary}` }}
-          >
-            <span>{awayTeam.shortName}</span>
-            <TeamCrest team={awayTeam} size={22} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {/* PES Broadcast Scoreboard */}
+          <div className="pes-scoreboard" style={{ pointerEvents: 'auto' }}>
+            <div
+              className="pes-score-team"
+              style={{ borderBottom: `3px solid ${homeTeam.kit.primary}` }}
+            >
+              <TeamCrest team={homeTeam} size={20} />
+              <span>{homeTeam.shortName}</span>
+            </div>
+            <div className="pes-score-digit">{hud.homeScore}</div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 3px',
+                color: '#64748b',
+                fontWeight: 800,
+              }}
+            >
+              -
+            </div>
+            <div className="pes-score-digit">{hud.awayScore}</div>
+            <div
+              className="pes-score-team"
+              style={{ borderBottom: `3px solid ${awayTeam.kit.primary}` }}
+            >
+              <span>{awayTeam.shortName}</span>
+              <TeamCrest team={awayTeam} size={20} />
+            </div>
+
+            <div className="pes-clock-box">
+              {config.mode === 'training' ? (
+                <span>TRAIN</span>
+              ) : config.mode === 'penalties' || hud.phase === 'penalty_shootout' ? (
+                <span>PEN</span>
+              ) : (
+                <>
+                  <span style={{ fontSize: 10, opacity: 0.85 }}>
+                    {hud.half === 1 ? '1ST' : '2ND'}
+                  </span>
+                  <span>{clock.main}</span>
+                  {clock.extra && (
+                    <span style={{ color: '#fef08a', fontSize: 11 }}>{clock.extra}</span>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
-          <div className="pes-clock-box">
-            {config.mode === 'training' ? (
-              <span>TRAINING</span>
-            ) : config.mode === 'penalties' || hud.phase === 'penalty_shootout' ? (
-              <span>PEN</span>
-            ) : (
-              <>
-                <span style={{ fontSize: 10, opacity: 0.85 }}>
-                  {hud.half === 1 ? '1ST' : '2ND'}
-                </span>
-                <span>{clock.main}</span>
-                {clock.extra && (
-                  <span style={{ color: '#fef08a', fontSize: 12 }}>{clock.extra}</span>
-                )}
-              </>
-            )}
-          </div>
+          {/* When touch controls are active, dock active player nameplate cleanly under scoreboard so thumbs never cover it */}
+          {touchEnabled && renderNameplate('home', homeTeam, hud.homeControlled, hud.homeCharge)}
         </div>
 
-        {/* Live Commentary Ticker */}
-        <div
-          style={{
-            flex: 1,
-            maxWidth: 440,
-            padding: '7px 14px',
-            borderRadius: 999,
-            background: 'rgba(6, 12, 28, 0.76)',
-            border: '1px solid rgba(56, 189, 248, 0.22)',
-            textAlign: 'center',
-            fontSize: 12.5,
-            fontFamily: 'var(--font-pes)',
-            color: '#e2e8f0',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            backdropFilter: 'blur(6px)',
-          }}
-        >
-          {hud.commentary}
-        </div>
+        {/* Live Commentary Ticker (auto-hidden on compact mobile screens) */}
+        <div className="pes-commentary-pill">{hud.commentary}</div>
 
         {/* Quick action buttons */}
-        <div style={{ display: 'flex', gap: 8, pointerEvents: 'auto' }}>
+        <div style={{ display: 'flex', gap: 6, pointerEvents: 'auto', flexShrink: 0 }}>
           <button
             className="pes-btn-secondary"
-            style={{ padding: '7px 10px' }}
+            style={{
+              padding: '7px 9px',
+              borderColor: touchEnabled ? '#38bdf8' : undefined,
+              color: touchEnabled ? '#38bdf8' : undefined,
+            }}
+            title={touchEnabled ? 'Hide Touch Controls' : 'Show Touch Controls'}
+            onClick={onToggleTouch}
+          >
+            <Smartphone size={15} />
+          </button>
+          <button
+            className="pes-btn-secondary"
+            style={{ padding: '7px 9px' }}
             title="Toggle Audio"
             onClick={onToggleMute}
           >
@@ -282,7 +285,7 @@ export const MatchHud: React.FC<MatchHudProps> = ({
           </button>
           <button
             className="pes-btn-secondary"
-            style={{ padding: '7px 10px' }}
+            style={{ padding: '7px 9px' }}
             title="Controls"
             onClick={() => setShowControls((v) => !v)}
           >
@@ -290,7 +293,7 @@ export const MatchHud: React.FC<MatchHudProps> = ({
           </button>
           <button
             className="pes-btn-secondary"
-            style={{ padding: '7px 10px' }}
+            style={{ padding: '7px 9px' }}
             title="Pause (ESC)"
             onClick={onTogglePause}
           >
@@ -306,7 +309,7 @@ export const MatchHud: React.FC<MatchHudProps> = ({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 12,
+          gap: 10,
         }}
       >
         {/* GOAL CELEBRATION SLAM BANNER */}
@@ -315,31 +318,32 @@ export const MatchHud: React.FC<MatchHudProps> = ({
             <div className="pes-goal-word">GOAL!!</div>
             <div
               style={{
-                marginTop: 6,
+                marginTop: 5,
                 fontFamily: 'var(--font-pes)',
-                fontSize: 20,
+                fontSize: 'clamp(14px, 3.2vw, 20px)',
                 fontWeight: 700,
                 color: '#ffffff',
-                letterSpacing: '0.08em',
+                letterSpacing: '0.06em',
               }}
             >
               #{hud.lastGoal.scorerNumber} {hud.lastGoal.scorerName} &nbsp;•&nbsp; {hud.lastGoal.minute}&apos;
             </div>
             <div
               style={{
-                marginTop: 6,
+                marginTop: 5,
                 display: 'flex',
+                flexWrap: 'wrap',
                 justifyContent: 'center',
-                gap: 12,
+                gap: '4px 12px',
                 fontFamily: 'var(--font-pes)',
-                fontSize: 13,
+                fontSize: 12,
                 color: '#38bdf8',
               }}
             >
               {hud.lastGoal.assistName && (
                 <span>ASSIST: {hud.lastGoal.assistName}</span>
               )}
-              <span>SPEED: {hud.lastGoal.shotSpeedKmh} KM/H</span>
+              <span>{hud.lastGoal.shotSpeedKmh} KM/H</span>
               <span style={{ color: '#fde047', textTransform: 'uppercase' }}>
                 {hud.lastGoal.shotType === 'finesse'
                   ? 'CURLED FINESSE'
@@ -355,7 +359,7 @@ export const MatchHud: React.FC<MatchHudProps> = ({
           </div>
         )}
 
-        {/* NON-GOAL BROADCAST BANNERS (Kickoff, Corner, Throw-in, Set Piece) */}
+        {/* NON-GOAL BROADCAST BANNERS */}
         {hud.phase !== 'goal_celebration' &&
           hud.phase !== 'goal_replay' &&
           hud.phase !== 'halftime' &&
@@ -363,19 +367,20 @@ export const MatchHud: React.FC<MatchHudProps> = ({
           hud.bannerText && (
             <div
               style={{
-                padding: '10px 30px',
+                padding: '8px 22px',
                 borderRadius: 10,
                 background: 'rgba(6, 12, 28, 0.88)',
                 borderTop: '2px solid #00d4ff',
                 borderBottom: '2px solid #facc15',
                 textAlign: 'center',
                 boxShadow: '0 10px 32px rgba(0,0,0,0.55)',
+                maxWidth: '90vw',
               }}
             >
               <div
                 style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: 22,
+                  fontSize: 'clamp(15px, 3vw, 22px)',
                   fontWeight: 800,
                   letterSpacing: '0.1em',
                 }}
@@ -385,11 +390,11 @@ export const MatchHud: React.FC<MatchHudProps> = ({
               {hud.bannerSubtext && (
                 <div
                   style={{
-                    marginTop: 3,
+                    marginTop: 2,
                     fontFamily: 'var(--font-pes)',
-                    fontSize: 13,
+                    fontSize: 12,
                     color: '#38bdf8',
-                    letterSpacing: '0.1em',
+                    letterSpacing: '0.08em',
                   }}
                 >
                   {hud.bannerSubtext}
@@ -398,42 +403,44 @@ export const MatchHud: React.FC<MatchHudProps> = ({
             </div>
           )}
 
-        {/* INSTANT REPLAY BROADCAST WATERMARK + SKIP */}
+        {/* INSTANT REPLAY WATERMARK + SKIP */}
         {hud.phase === 'goal_replay' && (
           <div
             style={{
               position: 'fixed',
-              top: 66,
+              top: 'calc(56px + var(--safe-top))',
               left: '50%',
               transform: 'translateX(-50%)',
               display: 'flex',
               alignItems: 'center',
-              gap: 14,
-              padding: '8px 18px',
+              gap: 10,
+              padding: '6px 14px',
               borderRadius: 999,
-              background: 'rgba(6, 12, 28, 0.9)',
+              background: 'rgba(6, 12, 28, 0.92)',
               border: '1px solid rgba(0, 212, 255, 0.5)',
               pointerEvents: 'auto',
+              maxWidth: '94vw',
             }}
           >
             <span
               style={{
-                width: 9,
-                height: 9,
+                width: 8,
+                height: 8,
                 borderRadius: '50%',
                 background: '#ef4444',
                 boxShadow: '0 0 8px #ef4444',
+                flexShrink: 0,
               }}
             />
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 800, letterSpacing: '0.12em', color: '#38bdf8' }}>
-              PES INSTANT REPLAY • 0.5x
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 11.5, fontWeight: 800, letterSpacing: '0.08em', color: '#38bdf8', whiteSpace: 'nowrap' }}>
+              REPLAY • 0.5x
             </span>
-            <div style={{ width: 90, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.16)', overflow: 'hidden' }}>
+            <div style={{ width: 64, height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.16)', overflow: 'hidden' }}>
               <div style={{ width: `${Math.round(hud.replayProgress * 100)}%`, height: '100%', background: '#facc15' }} />
             </div>
             <button
               className="pes-btn-secondary"
-              style={{ padding: '4px 10px', fontSize: 11 }}
+              style={{ padding: '4px 9px', fontSize: 11 }}
               onClick={onSkipReplay}
             >
               <FastForward size={12} /> Skip
@@ -446,28 +453,28 @@ export const MatchHud: React.FC<MatchHudProps> = ({
           <div
             style={{
               position: 'fixed',
-              bottom: 108,
+              bottom: touchEnabled ? 'calc(182px + var(--safe-bottom))' : 108,
               left: '50%',
               transform: 'translateX(-50%)',
-              padding: '12px 22px',
+              padding: '10px 16px',
               borderRadius: 12,
               background: 'rgba(6, 12, 28, 0.92)',
               border: '1px solid rgba(56, 189, 248, 0.4)',
-              minWidth: 370,
+              width: 'min(370px, 92vw)',
               textAlign: 'center',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontFamily: 'var(--font-pes)', fontWeight: 700, fontSize: 13 }}>{homeTeam.shortName}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7, gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontFamily: 'var(--font-pes)', fontWeight: 700, fontSize: 12 }}>{homeTeam.shortName}</span>
                 {Array.from({ length: Math.max(5, hud.penalty.homeHistory.length) }).map((_, i) => {
                   const res = hud.penalty!.homeHistory[i];
                   return (
                     <span
                       key={i}
                       style={{
-                        width: 12,
-                        height: 12,
+                        width: 11,
+                        height: 11,
                         borderRadius: '50%',
                         background: res === 'goal' ? '#22c55e' : res === 'miss' ? '#ef4444' : 'rgba(255,255,255,0.18)',
                         border: '1px solid rgba(255,255,255,0.3)',
@@ -477,15 +484,15 @@ export const MatchHud: React.FC<MatchHudProps> = ({
                 })}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 {Array.from({ length: Math.max(5, hud.penalty.awayHistory.length) }).map((_, i) => {
                   const res = hud.penalty!.awayHistory[i];
                   return (
                     <span
                       key={i}
                       style={{
-                        width: 12,
-                        height: 12,
+                        width: 11,
+                        height: 11,
                         borderRadius: '50%',
                         background: res === 'goal' ? '#22c55e' : res === 'miss' ? '#ef4444' : 'rgba(255,255,255,0.18)',
                         border: '1px solid rgba(255,255,255,0.3)',
@@ -493,19 +500,23 @@ export const MatchHud: React.FC<MatchHudProps> = ({
                     />
                   );
                 })}
-                <span style={{ fontFamily: 'var(--font-pes)', fontWeight: 700, fontSize: 13 }}>{awayTeam.shortName}</span>
+                <span style={{ fontFamily: 'var(--font-pes)', fontWeight: 700, fontSize: 12 }}>{awayTeam.shortName}</span>
               </div>
             </div>
 
             {hud.penalty.subPhase === 'aiming' && (
               <>
-                <div className="pes-bar-track" style={{ height: 10, marginBottom: 6 }}>
+                <div className="pes-bar-track" style={{ height: 9, marginBottom: 5 }}>
                   <div className="pes-power-fill" style={{ width: `${Math.round(hud.penalty.power * 100)}%` }} />
                 </div>
-                <div style={{ fontSize: 12, fontFamily: 'var(--font-pes)', color: '#fde047' }}>
+                <div style={{ fontSize: 11, fontFamily: 'var(--font-pes)', color: '#fde047' }}>
                   {hud.penalty.turnTeam === 'home'
-                    ? 'AIM TARGET (WASD / ARROWS) • PRESS K / SPACE TO STRIKE!'
-                    : 'DEFEND GOAL: HOLD UP (LEFT DIVE) OR DOWN (RIGHT DIVE)!'}
+                    ? touchEnabled
+                      ? 'AIM WITH JOYSTICK • TAP SHOOT!'
+                      : 'AIM (WASD / ARROWS) • PRESS K / SPACE TO STRIKE!'
+                    : touchEnabled
+                      ? 'HOLD JOYSTICK UP (LEFT DIVE) OR DOWN (RIGHT DIVE)!'
+                      : 'DEFEND GOAL: HOLD UP (LEFT DIVE) OR DOWN (RIGHT DIVE)!'}
                 </div>
               </>
             )}
@@ -513,33 +524,26 @@ export const MatchHud: React.FC<MatchHudProps> = ({
         )}
       </div>
 
-      {/* === BOTTOM ROW: P1 NAMEPLATE + PES RADAR MINIMAP + P2 NAMEPLATE === */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 }}>
-        {renderNameplate('home', homeTeam, hud.homeControlled, hud.homeCharge)}
+      {/* === BOTTOM ROW: NAMEPLATES + PES RADAR MINIMAP === */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: touchEnabled ? 'center' : 'space-between',
+          alignItems: 'flex-end',
+          gap: 10,
+        }}
+      >
+        {!touchEnabled && renderNameplate('home', homeTeam, hud.homeControlled, hud.homeCharge)}
 
         {/* Iconic PES Translucent Pitch Radar Minimap */}
-        <div
-          style={{
-            width: 210,
-            height: 112,
-            borderRadius: 8,
-            background: 'rgba(7, 25, 16, 0.78)',
-            border: '1.5px solid rgba(255, 255, 255, 0.25)',
-            position: 'relative',
-            overflow: 'hidden',
-            backdropFilter: 'blur(4px)',
-            boxShadow: '0 6px 20px rgba(0, 0, 0, 0.45)',
-          }}
-        >
-          <svg width="210" height="112" viewBox={`0 0 ${PITCH_WIDTH} ${PITCH_HEIGHT}`}>
-            {/* Radar pitch lines */}
+        <div className="pes-radar-box">
+          <svg width="100%" height="100%" viewBox={`0 0 ${PITCH_WIDTH} ${PITCH_HEIGHT}`} preserveAspectRatio="none">
             <rect x="6" y="6" width={PITCH_WIDTH - 12} height={PITCH_HEIGHT - 12} fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="8" />
             <line x1={PITCH_WIDTH / 2} y1="6" x2={PITCH_WIDTH / 2} y2={PITCH_HEIGHT - 6} stroke="rgba(255,255,255,0.35)" strokeWidth="7" />
             <circle cx={PITCH_WIDTH / 2} cy={PITCH_HEIGHT / 2} r="90" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="7" />
             <rect x="6" y="138" width="165" height="404" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="7" />
             <rect x={PITCH_WIDTH - 171} y="138" width="165" height="404" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="7" />
 
-            {/* All 22 player dots */}
             {radarPlayers.map((rp) => {
               const isCtrl = rp.id === homeControlledId || rp.id === awayControlledId;
               const fill = rp.team === 'home' ? homeTeam.kit.primary : awayTeam.kit.primary;
@@ -549,7 +553,7 @@ export const MatchHud: React.FC<MatchHudProps> = ({
                     <circle
                       cx={rp.x}
                       cy={rp.y}
-                      r="30"
+                      r="32"
                       fill="none"
                       stroke={rp.id === homeControlledId ? '#38bdf8' : '#fb7185'}
                       strokeWidth="9"
@@ -558,7 +562,7 @@ export const MatchHud: React.FC<MatchHudProps> = ({
                   <circle
                     cx={rp.x}
                     cy={rp.y}
-                    r="18"
+                    r="19"
                     fill={fill}
                     stroke="#ffffff"
                     strokeWidth="6"
@@ -567,12 +571,11 @@ export const MatchHud: React.FC<MatchHudProps> = ({
               );
             })}
 
-            {/* Glowing ball dot */}
-            <circle cx={radarBall.x} cy={radarBall.y} r="17" fill="#fef08a" stroke="#000" strokeWidth="5" />
+            <circle cx={radarBall.x} cy={radarBall.y} r="18" fill="#fef08a" stroke="#000" strokeWidth="5" />
           </svg>
         </div>
 
-        {renderNameplate('away', awayTeam, hud.awayControlled, hud.awayCharge)}
+        {!touchEnabled && renderNameplate('away', awayTeam, hud.awayControlled, hud.awayCharge)}
       </div>
 
       {/* === CONTROLS DRAWER === */}
@@ -580,23 +583,46 @@ export const MatchHud: React.FC<MatchHudProps> = ({
         <div
           style={{
             position: 'fixed',
-            top: 62,
-            right: 18,
-            width: 310,
-            padding: 16,
+            top: 'calc(56px + var(--safe-top))',
+            right: 14,
+            width: 'min(310px, 90vw)',
+            maxHeight: '72dvh',
+            overflowY: 'auto',
+            padding: 14,
             borderRadius: 12,
             background: 'rgba(6, 12, 28, 0.96)',
             border: '1px solid rgba(56, 189, 248, 0.45)',
             pointerEvents: 'auto',
-            fontSize: 12.5,
-            lineHeight: 1.8,
+            fontSize: 12,
+            lineHeight: 1.75,
             boxShadow: '0 14px 40px rgba(0,0,0,0.65)',
+            zIndex: 25,
           }}
         >
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 800, color: '#38bdf8', marginBottom: 8 }}>
-            PES CONTROLS REFERENCE
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 12.5, fontWeight: 800, color: '#38bdf8' }}>
+              PES CONTROLS
+            </span>
+            <button
+              className="pes-btn-secondary"
+              style={{ padding: '2px 8px', fontSize: 11 }}
+              onClick={() => setShowControls(false)}
+            >
+              Close
+            </button>
           </div>
-          {config.mode === 'local_pvp' ? (
+
+          {touchEnabled ? (
+            <>
+              <div style={{ color: '#4ade80', fontWeight: 700 }}>MOBILE TOUCH PAD</div>
+              <div>• Left Joystick — Dribble, Aim &amp; Move</div>
+              <div>• <strong>SHOOT / PRESS</strong> — Hold to charge PES Power Gauge</div>
+              <div>• <strong>PASS / SWITCH</strong> — Short Pass or Switch Defender</div>
+              <div>• <strong>THRU / GK</strong> — Through Ball or GK Rush</div>
+              <div>• <strong>CROSS / SLIDE</strong> — Lofted Cross or Slide Tackle</div>
+              <div>• <strong>DASH</strong> — Sprint • <strong>CURL</strong> + Shoot Finesse • <strong>SKILL</strong> Feint</div>
+            </>
+          ) : config.mode === 'local_pvp' ? (
             <>
               <div style={{ color: '#38bdf8', fontWeight: 700 }}>PLAYER 1 (HOME)</div>
               <div>WASD Move • L-Shift Sprint • V Finesse</div>
@@ -609,11 +635,11 @@ export const MatchHud: React.FC<MatchHudProps> = ({
             <>
               <div><span className="pes-key">WASD</span> / <span className="pes-key">Arrows</span> — Move &amp; Aim</div>
               <div><span className="pes-key">SHIFT</span> — Dash / Sprint (R1)</div>
-              <div><span className="pes-key">J</span> / <span className="pes-key">SPACE</span> — Short Pass / Switch Player (X)</div>
+              <div><span className="pes-key">J</span> / <span className="pes-key">SPACE</span> — Short Pass / Switch (X)</div>
               <div><span className="pes-key">K</span> / <span className="pes-key">ENTER</span> — Shoot / Press Tackle (□)</div>
               <div><span className="pes-key">I</span> / <span className="pes-key">E</span> — Through Ball / GK Rush (Δ)</div>
               <div><span className="pes-key">L</span> / <span className="pes-key">Q</span> — Lofted Cross / Slide Tackle (O)</div>
-              <div><span className="pes-key">C</span> + Shoot — Finesse Curled Shot (R2+□)</div>
+              <div><span className="pes-key">C</span> + Shoot — Finesse Curled Shot</div>
               <div><span className="pes-key">F</span> / <span className="pes-key">U</span> — PES Step-Over Skill Feint</div>
             </>
           )}
@@ -631,25 +657,17 @@ export const MatchHud: React.FC<MatchHudProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            padding: 12,
             pointerEvents: 'auto',
             zIndex: 30,
           }}
         >
-          <div
-            style={{
-              width: 'min(560px, 94vw)',
-              padding: '26px 28px',
-              borderRadius: 16,
-              background: 'linear-gradient(155deg, #0b1636, #060c1f)',
-              border: '1px solid rgba(56, 189, 248, 0.38)',
-              boxShadow: '0 22px 60px rgba(0,0,0,0.75)',
-            }}
-          >
-            <div style={{ textAlign: 'center', marginBottom: 18 }}>
+          <div className="pes-modal-card">
+            <div style={{ textAlign: 'center', marginBottom: 16 }}>
               <div
                 style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: 24,
+                  fontSize: 'clamp(18px, 4vw, 24px)',
                   fontWeight: 900,
                   letterSpacing: '0.1em',
                   color: hud.phase === 'fulltime' ? '#facc15' : '#38bdf8',
@@ -662,52 +680,50 @@ export const MatchHud: React.FC<MatchHudProps> = ({
                     : 'MATCH PAUSED'}
               </div>
 
-              {/* Big Scoreboard */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 18,
-                  marginTop: 14,
+                  gap: 12,
+                  marginTop: 12,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <TeamCrest team={homeTeam} size={42} />
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <TeamCrest team={homeTeam} size={34} />
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700 }}>
                     {homeTeam.shortName}
                   </span>
                 </div>
                 <div
                   style={{
                     fontFamily: 'var(--font-display)',
-                    fontSize: 38,
+                    fontSize: 'clamp(26px, 6vw, 38px)',
                     fontWeight: 900,
-                    padding: '4px 18px',
+                    padding: '4px 14px',
                     borderRadius: 10,
                     background: 'rgba(255,255,255,0.06)',
                   }}
                 >
                   {hud.homeScore} - {hud.awayScore}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 700 }}>
                     {awayTeam.shortName}
                   </span>
-                  <TeamCrest team={awayTeam} size={42} />
+                  <TeamCrest team={awayTeam} size={34} />
                 </div>
               </div>
             </div>
 
-            {/* Goal scorers list */}
             {hud.stats.goals.length > 0 && (
               <div
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
-                  gap: 16,
-                  padding: '8px 14px',
-                  marginBottom: 14,
+                  gap: 12,
+                  padding: '8px 12px',
+                  marginBottom: 12,
                   borderRadius: 8,
                   background: 'rgba(255,255,255,0.04)',
                   fontSize: 12,
@@ -735,8 +751,7 @@ export const MatchHud: React.FC<MatchHudProps> = ({
               </div>
             )}
 
-            {/* PES Match Stats Table */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 18 }}>
               {[
                 { label: 'POSSESSION', h: `${homePossPct}%`, a: `${awayPossPct}%` },
                 { label: 'SHOTS (ON TARGET)', h: `${hud.stats.home.shots} (${hud.stats.home.shotsOnTarget})`, a: `${hud.stats.away.shots} (${hud.stats.away.shotsOnTarget})` },
@@ -747,7 +762,7 @@ export const MatchHud: React.FC<MatchHudProps> = ({
               ].map((row) => (
                 <div className="pes-stat-row" key={row.label}>
                   <span style={{ textAlign: 'left', fontWeight: 700, color: '#38bdf8' }}>{row.h}</span>
-                  <span style={{ textAlign: 'center', fontSize: 12, color: '#94a3b8', letterSpacing: '0.1em' }}>
+                  <span style={{ textAlign: 'center', fontSize: 11.5, color: '#94a3b8', letterSpacing: '0.08em' }}>
                     {row.label}
                   </span>
                   <span style={{ textAlign: 'right', fontWeight: 700, color: '#fb7185' }}>{row.a}</span>
@@ -755,11 +770,10 @@ export const MatchHud: React.FC<MatchHudProps> = ({
               ))}
             </div>
 
-            {/* Action buttons */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
               {hud.isPaused && hud.phase !== 'halftime' && hud.phase !== 'fulltime' && (
                 <button className="pes-btn-primary" onClick={onTogglePause}>
-                  <Play size={16} fill="currentColor" /> Resume Match
+                  <Play size={16} fill="currentColor" /> Resume
                 </button>
               )}
 
@@ -790,4 +804,3 @@ export const MatchHud: React.FC<MatchHudProps> = ({
     </div>
   );
 };
-

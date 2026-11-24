@@ -1,5 +1,31 @@
 import { InputState } from '../types/game';
 
+export interface TouchInputState {
+  moveX: number;
+  moveY: number;
+  sprint: boolean;
+  finesse: boolean;
+  passHeld: boolean;
+  throughHeld: boolean;
+  shootHeld: boolean;
+  lobHeld: boolean;
+  skillHeld: boolean;
+}
+
+export function createEmptyTouchInput(): TouchInputState {
+  return {
+    moveX: 0,
+    moveY: 0,
+    sprint: false,
+    finesse: false,
+    passHeld: false,
+    throughHeld: false,
+    shootHeld: false,
+    lobHeld: false,
+    skillHeld: false,
+  };
+}
+
 export function createEmptyInput(): InputState {
   return {
     moveX: 0,
@@ -31,7 +57,8 @@ interface PrevButtons {
 }
 
 /**
- * Unified Keyboard + Gamepad input poller supporting:
+ * Unified Keyboard + Gamepad + Multi-Touch Virtual Pad input poller supporting:
+ * - Mobile Touch: Left Virtual Analog Joystick + Right PES Mobile Action Buttons
  * - P1 (Solo / Online): WASD or Arrow Keys + J/Space (Pass), K/Enter (Shoot), I/E (Through), L/Q (Lob/Slide), Shift (Sprint), C (Finesse), U/F (Skill Move)
  * - Local 2P PvP:
  *     P1: WASD + F (Pass), G (Shoot), R (Through), T (Lob/Slide), LeftShift (Sprint), V (Finesse), E (Skill)
@@ -81,7 +108,7 @@ export class InputManager {
     return false;
   }
 
-  public pollP1(isLocalPvp: boolean): InputState {
+  public pollP1(isLocalPvp: boolean, touch?: TouchInputState | null): InputState {
     let moveX = 0;
     let moveY = 0;
 
@@ -116,6 +143,21 @@ export class InputManager {
     let skillHeld = isLocalPvp
       ? this.has('KeyE')
       : this.has('KeyU', 'KeyF');
+
+    // Merge virtual touch controls seamlessly
+    if (touch) {
+      if (Math.hypot(touch.moveX, touch.moveY) > 0.08) {
+        moveX = touch.moveX;
+        moveY = touch.moveY;
+      }
+      if (touch.sprint) sprint = true;
+      if (touch.finesse) finesse = true;
+      if (touch.passHeld) passHeld = true;
+      if (touch.shootHeld) shootHeld = true;
+      if (touch.throughHeld) throughHeld = true;
+      if (touch.lobHeld) lobHeld = true;
+      if (touch.skillHeld) skillHeld = true;
+    }
 
     // Gamepad 0 support (PlayStation / Xbox PES classic layout!)
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -245,4 +287,3 @@ export class InputManager {
     return input;
   }
 }
-

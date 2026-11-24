@@ -150,8 +150,13 @@ export class PitchRenderer {
           : '#060a14';
     ctx.fillRect(0, 0, width, height);
 
-    // Compute broadcast camera scale
-    const baseScale = Math.min(width / 820, height / 520);
+    // Compute responsive broadcast camera scale (adapts cleanly to mobile portrait & landscape)
+    const isPortrait = height > width;
+    const baseScale = isPortrait
+      ? Math.max(width / 540, height / 760)
+      : width < 920
+        ? Math.max(Math.min(width / 700, height / 430), 0.72)
+        : Math.min(width / 820, height / 520);
     const scale = baseScale * engine.camZoom;
 
     // Screen shake offset
@@ -159,8 +164,10 @@ export class PitchRenderer {
     const shakeY = engine.screenShake > 0 ? (Math.random() - 0.5) * engine.screenShake * 1.4 : 0;
 
     // Clamp camera so pitch stays nicely framed
-    const camX = Math.max(150, Math.min(PITCH_WIDTH - 150, engine.camX));
-    const camY = Math.max(120, Math.min(PITCH_HEIGHT - 120, engine.camY));
+    const clampMarginX = isPortrait ? 90 : 150;
+    const clampMarginY = isPortrait ? 85 : 120;
+    const camX = Math.max(clampMarginX, Math.min(PITCH_WIDTH - clampMarginX, engine.camX));
+    const camY = Math.max(clampMarginY, Math.min(PITCH_HEIGHT - clampMarginY, engine.camY));
 
     ctx.translate(width / 2 + shakeX, height / 2 + shakeY);
     ctx.scale(scale, scale);

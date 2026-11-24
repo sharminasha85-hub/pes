@@ -102,9 +102,10 @@ export const TeamSelect: React.FC<TeamSelectProps> = ({
     return (
       <div
         style={{
-          flex: 1,
-          minWidth: 300,
-          padding: 18,
+          flex: '1 1 300px',
+          minWidth: 0,
+          width: '100%',
+          padding: 16,
           borderRadius: 14,
           background: 'rgba(8, 16, 38, 0.88)',
           border: `1px solid ${accent}44`,
@@ -250,11 +251,11 @@ export const TeamSelect: React.FC<TeamSelectProps> = ({
         }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <button className="pes-btn-secondary" onClick={onBack}>
-            <ArrowLeft size={15} /> Back to Menu
+            <ArrowLeft size={15} /> Back
           </button>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, letterSpacing: '0.08em' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(15px, 3.8vw, 20px)', fontWeight: 800, letterSpacing: '0.06em' }}>
             {mode === 'online'
               ? 'ONLINE MATCH ROOM'
               : mode === 'local_pvp'
@@ -265,7 +266,7 @@ export const TeamSelect: React.FC<TeamSelectProps> = ({
                     ? 'TRAINING GROUND SETUP'
                     : 'EXHIBITION MATCH SETUP'}
           </div>
-          <div style={{ width: 120 }} />
+          <div style={{ width: 64 }} />
         </div>
 
         {/* Online Multiplayer Room Bar */}
@@ -377,7 +378,7 @@ export const TeamSelect: React.FC<TeamSelectProps> = ({
         >
           {/* Difficulty */}
           {(mode === 'exhibition' || mode === 'penalties') && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
               <Shield size={15} color="#38bdf8" />
               <span style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-pes)' }}>AI LEVEL:</span>
               {DIFFICULTIES.map((d) => (
@@ -404,7 +405,7 @@ export const TeamSelect: React.FC<TeamSelectProps> = ({
 
           {/* Match length */}
           {mode !== 'penalties' && mode !== 'training' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
               <Zap size={15} color="#facc15" />
               <span style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-pes)' }}>TIME:</span>
               {[3, 4, 6, 8].map((m) => (
@@ -430,7 +431,7 @@ export const TeamSelect: React.FC<TeamSelectProps> = ({
           )}
 
           {/* Stadium lighting */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
             {[
               { id: 'night' as const, label: 'Night', icon: Moon },
               { id: 'sunset' as const, label: 'Sunset', icon: Sunset },
@@ -462,7 +463,7 @@ export const TeamSelect: React.FC<TeamSelectProps> = ({
         </div>
 
         {/* Kick Off CTA */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-display)', fontSize: 16 }}>
             <TeamCrest team={homeTeam} size={32} />
             <span>{homeTeam.shortName}</span>
